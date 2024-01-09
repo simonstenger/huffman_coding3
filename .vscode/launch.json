@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/simon/Desktop/C/huffman_coding3",
-      "program": "c:/Users/simon/Desktop/C/huffman_coding3/huffman_code.exe",
+      "cwd": ".",
+      "program": "build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

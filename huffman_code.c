@@ -10,7 +10,7 @@
 
 #define INT_MAX 2147483647
 
-/* Node of the huffman tree */
+// Node of the huffman tree
 struct node{
     int value;
     char letter;
@@ -23,7 +23,7 @@ struct char_freqs{
 };
 
 // Code structure to store the binary codes
-struct code {
+struct code{
     char letter;
     char* code;
     int length;
@@ -34,7 +34,7 @@ typedef struct char_freqs Frequency;
 typedef struct code Code;
 
 /*Read input file into variable in a function*/
-void read_file(char *filename, char *input) /*inputs: pointer to filename array, pointer to input array*/
+void readFile(char *filename, char *input) /*inputs: pointer to filename array, pointer to input array*/
 {
     FILE *fp;
     char c;
@@ -47,7 +47,7 @@ void read_file(char *filename, char *input) /*inputs: pointer to filename array,
         exit(1);
     }
 
-    while ((c = fgetc(fp)) != EOF) /*copy characters into input array until end of file is reached*/
+    while ((c = fgetc(fp)) != EOF) //copy characters into input array until end of file is reached
     {
         input[i] = c;
         i++;
@@ -56,7 +56,7 @@ void read_file(char *filename, char *input) /*inputs: pointer to filename array,
     fclose(fp);
 }
 
-void count_freq(char *initial, Frequency *char_frequency) 
+void countFrequencies(char *initial, Frequency *char_frequency) 
 {    
     for (int i = 0; initial[i] != '\0'; i++)
     {
@@ -66,11 +66,10 @@ void count_freq(char *initial, Frequency *char_frequency)
 }
 
 /*replace sorted array with one excluding the zeros*/
-Frequency *remove_zeros(Frequency *char_frequency, int new_size)
+Frequency *removeZeroElements(Frequency *char_frequency, int new_size)
 {
     // Allocate memory for the new array
     Frequency *new_char_frequency = (Frequency *)malloc(new_size * sizeof(Frequency));
-
     // Copy non-zero elements to the new array
     int j = 0;
     for (int i = 0; i < 128; i++)
@@ -99,9 +98,6 @@ void freeHuffmanTree(Node* tree) {
     if (tree == NULL) {
         return;
     }
-
-    //freeHuffmanTree(tree->left);
-    //freeHuffmanTree(tree->right);
     free(tree);
 }
 
@@ -125,7 +121,6 @@ int findMinNode(Node* tree, int excludedIndex, int size) {
 
 /*builds the huffman tree and returns its address by reference*/
 Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency){
-    printf("Entered build Huffman");
     int i = 0;
     int nodes_left = *new_size;
     int smallOne,smallTwo;
@@ -135,17 +130,18 @@ Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency){
         tree[i].letter = char_frequency[i].character;
         tree[i].left = -1;
         tree[i].right = -1;
+
         printf("Node Frequency %d  ", tree[i].value);
         printf("Node Character %c  ", tree[i].letter);
-        printf("Number of nodes so far %d", i);
-        printf("\n");
+        printf("Number of nodes so far %d\n", i);
     }
 
     while (nodes_left>1){
         smallOne=findMinNode(tree,-1, *new_size);
         smallTwo=findMinNode(tree,smallOne, *new_size);
-        //temp = *tree[smallOne];
+
         tree = realloc(tree, sizeof(Node) * ((*new_size)+1));
+
         tree[*new_size].value=tree[smallOne].value+tree[smallTwo].value;
         tree[*new_size].letter=129;
         tree[*new_size].left=smallTwo;
@@ -155,63 +151,45 @@ Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency){
         nodes_left--;
         (*new_size)++;
     }
-    printf("Huffman tree built");
+    printf("Huffman tree built\n");
     return tree;
 }
 
 // Function to build the code table
 void buildCodeTable(Node* tree, int index, Code* codeTable, char* currentCode, int depth) {
-    printf("Entered build code table");
     if (tree == NULL) {
         return;
     }
 
     // If the node is a leaf, assign the binary code to the corresponding character
-
-    // Traverse left and append '0' to the current code
     int LeftIndex = tree[index].left;
     if (tree[LeftIndex].left == -1 && tree[LeftIndex].right == -1) {
         codeTable[tree[LeftIndex].letter].letter = tree[LeftIndex].letter;
         codeTable[tree[LeftIndex].letter].code = malloc(depth*sizeof(char));
         memcpy(codeTable[tree[LeftIndex].letter].code, currentCode, depth*sizeof(char));
-        // codeTable[tree->letter].code = currentCode;
         codeTable[tree[LeftIndex].letter].length = depth;
         
     }
     else {
-        // char* leftCode = malloc((depth + 1) * sizeof(char));
-        // currentCode = realloc(currentCode, (depth + 1)*sizeof(char));
-        // snprintf(leftCode, depth + 1, "%s0", currentCode);
         currentCode[depth] = '0';
         buildCodeTable(tree, LeftIndex, codeTable, currentCode, depth + 1);
-        // free(leftCode);
     }
 
-    // Traverse right and append '1' to the current code
     int RightIndex = tree[index].right;
     if (tree[RightIndex].right == -1 && tree[RightIndex].left == -1) {
         codeTable[tree[RightIndex].letter].letter = tree[RightIndex].letter;
         codeTable[tree[RightIndex].letter].code = malloc(depth*sizeof(char));
         memcpy(codeTable[tree[RightIndex].letter].code, currentCode, depth*sizeof(char));
-        // codeTable[tree->letter].code = currentCode;
         codeTable[tree[RightIndex].letter].length = depth;
     }
     else {
-        // char* rightCode = malloc((depth + 1) * sizeof(char));
-        // snprintf(rightCode, depth + 1, "%s1", currentCode);
         currentCode[depth] = '1';
         buildCodeTable(tree, RightIndex, codeTable, currentCode, depth + 1);
-        // free(rightCode);
     }
-
-    printf("Code table built");
-    // Free the memory allocated for the current code and huffman tree
-    //free(currentCode);
-    //freeHuffmanTree(tree);
 }
 
 // Function to write the code table to the header of a text output file
-void writeCodeTableToFile(FILE* file, Code* codeTable) {
+void writeCodeTable2File(FILE* file, Code* codeTable) {
     fprintf(file, "CodeTable\n");
 
     for (int i = 0; i < 128; ++i) {
@@ -222,8 +200,8 @@ void writeCodeTableToFile(FILE* file, Code* codeTable) {
     fprintf(file, "EndCodeTable\n");
 }
 
-// Function to read and restore the code table from a compressed file
-void readCodeTableFromFile(FILE* file, Code* codeTable) {
+//reconstruct code table from file
+void reconstructCodeTableFromFile(FILE* file, Code* codeTable) {
     char line[256];  // Adjust the size accordingly based on your requirements
 
     // Search for the beginning of the code table section
@@ -246,31 +224,78 @@ void readCodeTableFromFile(FILE* file, Code* codeTable) {
         // Dynamically allocate memory for codeTable[letter].code
         codeTable[letter].letter = (unsigned char)letter;
         codeTable[letter].code = strdup(code);
+        codeTable[letter].length = strlen(code);
     }
 }
 
-// Function to print the code table DOES NOT WORK
-void printCodeTable(Code* codeTable, int new_size) {
-    printf("Code table:");
-    printf("\n");
-    for (int i = 0; i < new_size; ++i) {
-        if (codeTable[i].code != NULL) {
-            printf("Character %d     Code: %s", codeTable[i].letter, codeTable[i].code);
-            printf("\n");
+
+void writeBinaryString2File(FILE* file, char index, Code* codeTable) {
+    const char* binaryString = codeTable[index].code;
+    int length = codeTable[index].length;
+
+    unsigned char byte = 0;
+    int bitIndex = 7; // Start from the most significant bit
+
+    for (int i = 0; i < length; ++i) {
+        if (binaryString[i] == '1') {
+            byte |= (1 << bitIndex);
+        }
+        // Move to the next bit
+        bitIndex--;
+
+        // Write the byte to the file when all bits are set
+        if (bitIndex < 0) {
+            fwrite(&byte, sizeof(unsigned char), 1, file);
+            byte = 0;
+            bitIndex = 7;
         }
     }
+
+    // If there are remaining bits in the last byte, write it to the file
+    if (bitIndex != 7) {
+        fwrite(&byte, sizeof(unsigned char), 1, file);
+    }
 }
+
+char* readBinaryStringFromFile(FILE* file) {
+    char* binaryString = NULL;
+    size_t bufferSize = 0;
+    size_t bytesRead;
+
+    // Read the binary message until the end of the file
+    while (1) {
+        char buffer[1024];  // Adjust the size accordingly based on your requirements
+        bytesRead = fread(buffer, sizeof(char), sizeof(buffer), file);
+
+        if (bytesRead == 0) {
+            break;  // End of file
+        }
+
+        // Resize the binaryString buffer to accommodate the new data
+        binaryString = realloc(binaryString, bufferSize + bytesRead + 1);
+
+        // Copy the buffer content to the binaryString buffer
+        memcpy(binaryString + bufferSize, buffer, bytesRead);
+        bufferSize += bytesRead;
+    }
+
+    // Null-terminate the binaryString
+    binaryString[bufferSize] = '\0';
+
+    return binaryString;
+}
+
 
 /*function to compress the input*/
 void compressFile(FILE *input, FILE *output, Code* codeTable, int new_size){
     printf("Compressing file");
     printf("\n");
     //write the codeTable into the header of the output file
-    writeCodeTableToFile(output, codeTable);
+    writeCodeTable2File(output, codeTable);
     //loop over characters in input file, take the code from the codeTable and write it to the output file
     char c;
     while ((c = fgetc(input)) != EOF) {
-        fprintf(output, "%.*s", codeTable[c].length, codeTable[c].code);
+        writeBinaryString2File(output, c, codeTable);
         // int length = strlen(codeTable[c].code);
         printf("Length of code: %d", codeTable[c].length);
         printf("\n");
@@ -300,20 +325,15 @@ void compressFile(FILE *input, FILE *output, Code* codeTable, int new_size){
 
 /*function to decompress the input*/ //DOES NOT WORK YET
 void decompressFile(FILE *input, FILE *output, Code* codeTable) {
-    printf("Decompressing file");
-    printf("\n");
+    printf("Decompressing file\n");
+    //reconstruct code table from file
+    reconstructCodeTableFromFile(input, codeTable);
+    //read binary string from file
+    char* binaryString = readBinaryStringFromFile(input);
 
-    int byte;
-    int bit;
+    printf("Binary string: %s\n", binaryString);
 
-    // Read each byte from the file
-    while ((byte = fgetc(input)) != EOF) {
-        // Process each bit within the byte
-        for (bit = 7; bit >= 0; --bit) {
-            int currentBit = (byte >> bit) & 1;
-            printf("%d", currentBit); // Replace this with your actual processing logic
-        }
-    }
+    free(binaryString);
 }
 
 int main(){
@@ -335,11 +355,11 @@ int main(){
     if (compress==1){
         Frequency *char_frequency0 = (Frequency *)calloc(128, sizeof(Frequency));
         char initial[3000];
-        read_file(filename, initial);
-        count_freq(initial, char_frequency0);
+        readFile(filename, initial);
+        countFrequencies(initial, char_frequency0);
         int new_size = count_non_zero(char_frequency0, 128);
         printf("new size: %d\n", new_size);
-        Frequency *char_frequency = remove_zeros(char_frequency0, new_size);
+        Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
 
         Node* tree = malloc(sizeof(Node) * new_size);
         int number_nodes;
@@ -366,7 +386,6 @@ int main(){
     }
     else{
         Code* codeTable = malloc(128 * sizeof(Code));
-        readCodeTableFromFile(input, codeTable);
         decompressFile(input,output, codeTable);
 
         // Clean up memory for all variables
