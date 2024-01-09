@@ -8,13 +8,13 @@
 #include <string.h>
 #include <math.h>
 
-#define len(x) ((int)log10(x)+1)
+#define INT_MAX 2147483647
 
 /* Node of the huffman tree */
 struct node{
     int value;
     char letter;
-    struct node *left,*right;
+    int left, right;
 };
 
 struct char_freqs{
@@ -24,7 +24,7 @@ struct char_freqs{
 
 // Code structure to store the binary codes
 struct code {
-    unsigned char letter;
+    char letter;
     char* code;
     int length;
 };
@@ -100,50 +100,41 @@ void freeHuffmanTree(Node* tree) {
         return;
     }
 
-    freeHuffmanTree(tree->left);
-    freeHuffmanTree(tree->right);
+    //freeHuffmanTree(tree->left);
+    //freeHuffmanTree(tree->right);
     free(tree);
 }
 
-/*finds and returns the small sub-tree in the forrest*/
-int findSmaller (Node *array, int differentFrom, int new_size){
-    int smaller;
-    int i = 0;
+/*finds the smallest node in the array*/
+int findMinNode(Node* tree, int excludedIndex, int size) {
+    int minIndex = -1;
+    int minValue = INT_MAX;
 
-    while (array[i].value==-1)
-        i++;
-    smaller=i;
-    if (i==differentFrom){
-        i++;
-        while (array[i].value==-1)
-            i++;
-        smaller=i;
+    for (int i = 0; i < size; ++i) {
+        // Ignore nodes with a value of -1 or the excluded index
+        if (tree[i].value != -1 && i != excludedIndex) {
+            if (tree[i].value < minValue) {
+                minValue = tree[i].value;
+                minIndex = i;
+            }
+        }
     }
 
-    for (i=1;i<new_size;i++){
-        if (array[i].value==-1)
-            continue;
-        if (i==differentFrom)
-            continue;
-        if (array[i].value<array[smaller].value)
-            smaller = i;
-    }
-
-    return smaller;
+    return minIndex;
 }
 
 /*builds the huffman tree and returns its address by reference*/
-int buildHuffmanTree(Node *tree, int new_size, Frequency *char_frequency){
+Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency){
     printf("Entered build Huffman");
     int i = 0;
-    int nodes_left = new_size;
+    int nodes_left = *new_size;
     int smallOne,smallTwo;
 
-    for (i=0;i<new_size;i++){
+    for (i=0;i<*new_size;i++){
         tree[i].value = char_frequency[i].frequency;
         tree[i].letter = char_frequency[i].character;
-        tree[i].left = NULL;
-        tree[i].right = NULL;
+        tree[i].left = -1;
+        tree[i].right = -1;
         printf("Node Frequency %d  ", tree[i].value);
         printf("Node Character %c  ", tree[i].letter);
         printf("Number of nodes so far %d", i);
@@ -151,58 +142,68 @@ int buildHuffmanTree(Node *tree, int new_size, Frequency *char_frequency){
     }
 
     while (nodes_left>1){
-        smallOne=findSmaller(tree,-1, new_size);
-        smallTwo=findSmaller(tree,smallOne, new_size);
+        smallOne=findMinNode(tree,-1, *new_size);
+        smallTwo=findMinNode(tree,smallOne, *new_size);
         //temp = *tree[smallOne];
-        tree = realloc(tree, sizeof(Node) * (new_size+1));
-        tree[new_size].value=tree[smallOne].value+tree[smallTwo].value;
-        tree[new_size].letter=129;
-        tree[new_size].left=&tree[smallTwo];
-        tree[new_size].right=&tree[smallOne];
+        tree = realloc(tree, sizeof(Node) * ((*new_size)+1));
+        tree[*new_size].value=tree[smallOne].value+tree[smallTwo].value;
+        tree[*new_size].letter=129;
+        tree[*new_size].left=smallTwo;
+        tree[*new_size].right=smallOne;
         tree[smallOne].value=-1;
         tree[smallTwo].value=-1;
         nodes_left--;
-        new_size++;
+        (*new_size)++;
     }
     printf("Huffman tree built");
-    return new_size;
+    return tree;
 }
 
 // Function to build the code table
-void buildCodeTable(Node* tree, Code* codeTable, char* currentCode, int depth) {
+void buildCodeTable(Node* tree, int index, Code* codeTable, char* currentCode, int depth) {
     printf("Entered build code table");
     if (tree == NULL) {
         return;
     }
 
     // If the node is a leaf, assign the binary code to the corresponding character
-    if (tree->left == NULL && tree->right == NULL) {
-        codeTable[tree->letter].letter = tree->letter;
-        codeTable[tree->letter].code = malloc(depth*sizeof(char));
-        memcpy(codeTable[tree->letter].code, currentCode, depth*sizeof(char));
-        // codeTable[tree->letter].code = currentCode;
-        codeTable[tree->letter].length = depth;
-        return;
-    }
 
     // Traverse left and append '0' to the current code
-    if (tree->left != NULL) {
+    int LeftIndex = tree[index].left;
+    if (tree[LeftIndex].left == -1 && tree[LeftIndex].right == -1) {
+        codeTable[tree[LeftIndex].letter].letter = tree[LeftIndex].letter;
+        codeTable[tree[LeftIndex].letter].code = malloc(depth*sizeof(char));
+        memcpy(codeTable[tree[LeftIndex].letter].code, currentCode, depth*sizeof(char));
+        // codeTable[tree->letter].code = currentCode;
+        codeTable[tree[LeftIndex].letter].length = depth;
+        
+    }
+    else {
         // char* leftCode = malloc((depth + 1) * sizeof(char));
         // currentCode = realloc(currentCode, (depth + 1)*sizeof(char));
         // snprintf(leftCode, depth + 1, "%s0", currentCode);
         currentCode[depth] = '0';
-        buildCodeTable(tree->left, codeTable, currentCode, depth + 1);
+        buildCodeTable(tree, LeftIndex, codeTable, currentCode, depth + 1);
         // free(leftCode);
     }
 
     // Traverse right and append '1' to the current code
-    if (tree->right != NULL) {
+    int RightIndex = tree[index].right;
+    if (tree[RightIndex].right == -1 && tree[RightIndex].left == -1) {
+        codeTable[tree[RightIndex].letter].letter = tree[RightIndex].letter;
+        codeTable[tree[RightIndex].letter].code = malloc(depth*sizeof(char));
+        memcpy(codeTable[tree[RightIndex].letter].code, currentCode, depth*sizeof(char));
+        // codeTable[tree->letter].code = currentCode;
+        codeTable[tree[RightIndex].letter].length = depth;
+    }
+    else {
         // char* rightCode = malloc((depth + 1) * sizeof(char));
         // snprintf(rightCode, depth + 1, "%s1", currentCode);
         currentCode[depth] = '1';
-        buildCodeTable(tree->right, codeTable, currentCode, depth + 1);
+        buildCodeTable(tree, RightIndex, codeTable, currentCode, depth + 1);
         // free(rightCode);
     }
+
     printf("Code table built");
     // Free the memory allocated for the current code and huffman tree
     //free(currentCode);
@@ -318,7 +319,6 @@ void decompressFile(FILE *input, FILE *output, Code* codeTable) {
 int main(){
     printf("-----------------------------Huffman compression-----------------------------");
     printf("\n");
-    Node *tree;
     int compress;
     char filename[20];
     FILE *input, *output;
@@ -341,31 +341,25 @@ int main(){
         printf("new size: %d\n", new_size);
         Frequency *char_frequency = remove_zeros(char_frequency0, new_size);
 
-        tree = malloc(sizeof(Node) * new_size);
+        Node* tree = malloc(sizeof(Node) * new_size);
         int number_nodes;
-        number_nodes = buildHuffmanTree(tree, new_size, char_frequency);
-        //free the memory allocated for the frequency array and array of nodes
-        //free(char_frequency); //does not work for test1???
-
-        // Calculate the size of your code table based on the number of ASCII symbols
-        Code* codeTable = malloc(128 * sizeof(Code));
+        tree = buildHuffmanTree(tree, &new_size, char_frequency);
+        Code *codeTable = malloc(128 * sizeof(Code));
 
         // Initialize the code table
         for (int i = 0; i < 128; ++i) {
-            codeTable[i].letter = 0;  // Initialize to 0, assuming 0 is not a valid character
+            codeTable[i].letter = 0;
             codeTable[i].code = NULL;
             codeTable[i].length = 0;
         }
 
-        // Build the code table
-        char currentCode[50] = { 0 };
-        buildCodeTable(&tree[number_nodes-1], codeTable, currentCode, 0);
-        //printCodeTable(codeTable, new_size);
+        char currentCode[50] = {0};
+        buildCodeTable(tree, new_size-1 , codeTable, currentCode, 0);
         compressFile(input, output, codeTable, new_size);
 
-        //Clean up memory for all variables
+        // Clean up memory for all variables
         freeHuffmanTree(tree);
-        for (int i = 0; i < new_size; ++i) {
+        for (int i = 0; i < 128; ++i) {
             free(codeTable[i].code);
         }
         free(codeTable);       
