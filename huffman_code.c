@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <math.h>
 
 #define INT_MAX 2147483647
@@ -192,34 +193,34 @@ void buildCodeTable(Node* tree, int index, Code* codeTable, char* currentCode, i
 
 // Function to write the code table and its size to the header of a binary output file
 void writeCodeTable2FileBinary(FILE* file, Code* codeTable, int tableSize) {
-    // Write the size of the table
-    fwrite(&tableSize, sizeof(int), 1, file);
+    // Write int tableSize to the file
+    fwrite(&tableSize, sizeof(char), 1, file);
 
     for (int i = 0; i < 128; ++i) {
         if (codeTable[i].code != NULL) {
             // Write the letter
             fwrite(&codeTable[i].letter, sizeof(char), 1, file);
-
             // Write the length of the code
-            int length = strlen(codeTable[i].code);
-            fwrite(&length, sizeof(int), 1, file);
-
-            // Write the code
-            fwrite(codeTable[i].code, sizeof(char), length, file);
+            fwrite(&codeTable[i].length, sizeof(int), 1, file);
+            // Write the code in actual binary format
+            fwrite(codeTable[i].code, sizeof(char), codeTable[i].length, file);
         }
     }
 }
 
 // Reconstruct code table from binary file
-Code* reconstructCodeTableFromFileBinary(FILE* file, Code* codeTable, int tableSize) {
+Code* reconstructCodeTableFromFileBinary(FILE* file, int* tableSize) {
     // Read code table size
-    if (fread(&tableSize, sizeof(int), 1, file) != 1) {
+    if (fread(tableSize, sizeof(char), 1, file) < 1) {
         fprintf(stderr, "Error reading code table size from file\n");
         return NULL;  // Return NULL on error
     }
 
+    // Allocate memory for the code table
+    Code* codeTable = malloc((*tableSize) * sizeof(Code));
+
     // Read code table entries
-    for (int i = 0; i < tableSize; ++i) {
+    for (int i = 0; i < (*tableSize); ++i) {
         // Read the letter
         fread(&codeTable[i].letter, sizeof(char), 1, file);
 
@@ -238,13 +239,12 @@ Code* reconstructCodeTableFromFileBinary(FILE* file, Code* codeTable, int tableS
     return codeTable;
 }
 
+void writeBinaryString2File(FILE* file, char index, Code* codeTable, int new_size) {
+    static unsigned char byte = 0; // Make byte static to retain its value across function calls
+    static int bitIndex = 7; // Make bitIndex static to retain its value across function calls
 
-void writeBinaryString2File(FILE* file, char index, Code* codeTable) {
     const char* binaryString = codeTable[index].code;
     int length = codeTable[index].length;
-
-    unsigned char byte = 0;
-    int bitIndex = 7; // Start from the most significant bit
 
     for (int i = 0; i < length; ++i) {
         if (binaryString[i] == '1') {
@@ -261,8 +261,8 @@ void writeBinaryString2File(FILE* file, char index, Code* codeTable) {
         }
     }
 
-    // If there are remaining bits in the last byte, write it to the file
-    if (bitIndex != 7) {
+    // If this is the last character, write the remaining bits to the file
+    if (index == new_size - 1 && bitIndex != 7) {
         fwrite(&byte, sizeof(unsigned char), 1, file);
     }
 }
@@ -296,6 +296,7 @@ void decodeBinaryFile(FILE *input, FILE *output, Code *codeTable, int tableSize)
                 if (bufferLength == codeTable[j].length && buffer == strtol(codeTable[j].code, NULL, 2)) {
                     // Match found, print the letter to the output file
                     fprintf(output, "%c", codeTable[j].letter);
+                    printf("%c", codeTable[j].letter);
 
                     // Remove the processed bits from the buffer
                     bufferLength -= codeTable[j].length;
@@ -316,7 +317,7 @@ void compressFile(FILE *input, FILE *output, Code* codeTable, int new_size){
     //loop over characters in input file, take the code from the codeTable and write it to the output file
     char c;
     while ((c = fgetc(input)) != EOF) {
-        writeBinaryString2File(output, c, codeTable);
+        writeBinaryString2File(output, c, codeTable, new_size);
         // int length = strlen(codeTable[c].code);
         printf("Length of code: %d", codeTable[c].length);
         printf("\n");
@@ -350,13 +351,19 @@ void compressFile(FILE *input, FILE *output, Code* codeTable, int new_size){
 }
 
 /*function to decompress the input*/ //DOES NOT WORK YET
-void decompressFile(FILE *input, FILE *output, Code* codeTable) {
+void decompressFile(FILE *input, FILE *output) {
     printf("Decompressing file\n");
     //reconstruct code table from file
     int tableSize = 0;
-    codeTable = reconstructCodeTableFromFileBinary(input, codeTable, tableSize);
+    Code* codeTable = reconstructCodeTableFromFileBinary(input, &tableSize);
     //read binary string from file
     decodeBinaryFile(input, output, codeTable, tableSize);
+
+    // Clean up memory for all variables
+        for (int i = 0; i < 128; ++i) {
+            free(codeTable[i].code);
+        }
+        free(codeTable);
 }
 
 int main(){
@@ -410,14 +417,7 @@ int main(){
     else{
         input = fopen(filename, "rb");
         output = fopen("output.txt","w");
-        Code* codeTable = malloc(128 * sizeof(Code));
-        decompressFile(input,output, codeTable);
-
-        // Clean up memory for all variables
-        for (int i = 0; i < 128; ++i) {
-            free(codeTable[i].code);
-        }
-        free(codeTable);
+        decompressFile(input,output);
     }
 
     fclose(input);
