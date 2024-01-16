@@ -58,7 +58,6 @@ Frequency *removeZeroElements(Frequency *char_frequency, int new_size)
             new_char_frequency[j++] = char_frequency[i];
         }
     }
-    free(char_frequency);
     return new_char_frequency;
 }
 
@@ -287,11 +286,34 @@ void decodeBinaryFile(FILE *input, FILE *output, Code *codeTable, int tableSize)
 }  
 
 /*function to compress the input*/
-void compressFile(FILE *input, FILE *output, Code* codeTable, int new_size){
+void compressFile(FILE *input, FILE *output){
     printf("Compressing file");
     printf("\n");
+
+    Frequency *char_frequency0 = (Frequency *)calloc(128, sizeof(Frequency));
+    countFrequencies(input, char_frequency0);
+    int new_size = count_non_zero(char_frequency0, 128);
+    printf("new size: %d\n", new_size);
+    Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
+
+    Node* tree = malloc(sizeof(Node) * new_size);
+    int number_leaf_nodes;
+    memcpy(&number_leaf_nodes, &new_size, sizeof(int));
+    tree = buildHuffmanTree(tree, &new_size, char_frequency);
+    Code *codeTable = malloc(128 * sizeof(Code));
+
+    // Initialize the code table
+    for (int i = 0; i < 128; ++i) {
+        codeTable[i].letter = 0;
+        codeTable[i].code = NULL;
+        codeTable[i].length = 0;
+    }
+
+    char currentCode[50] = {0};
+    buildCodeTable(tree, new_size-1 , codeTable, currentCode, 0);
+
     //write the codeTable into the header of the output file
-    writeCodeTable2FileBinary(output, codeTable, new_size);
+    writeCodeTable2FileBinary(output, codeTable, number_leaf_nodes);
     //loop over characters in input file, take the code from the codeTable and write it to the output file
     char c;
     while ((c = fgetc(input)) != EOF) {
@@ -308,6 +330,15 @@ void compressFile(FILE *input, FILE *output, Code* codeTable, int new_size){
         //write EOF to the output file
         fprintf(output, "%c", EOF);
     }
+
+    // Clean up memory for all variables
+    freeHuffmanTree(tree);
+    for (int i = 0; i < 128; ++i) {
+        free(codeTable[i].code);
+    }
+    free(codeTable);
+    free(char_frequency0);
+    free(char_frequency);
     
     //calculate input file size
     fseek(input, 0L, SEEK_END);
@@ -360,35 +391,7 @@ int main(){
     if (compress==1){
         input = fopen(filename, "r");
         output = fopen("output.bin","wb");
-        Frequency *char_frequency0 = (Frequency *)calloc(128, sizeof(Frequency));
-        countFrequencies(input, char_frequency0);
-        int new_size = count_non_zero(char_frequency0, 128);
-        printf("new size: %d\n", new_size);
-        Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
-
-        Node* tree = malloc(sizeof(Node) * new_size);
-        int number_leaf_nodes;
-        memcpy(&number_leaf_nodes, &new_size, sizeof(int));
-        tree = buildHuffmanTree(tree, &new_size, char_frequency);
-        Code *codeTable = malloc(128 * sizeof(Code));
-
-        // Initialize the code table
-        for (int i = 0; i < 128; ++i) {
-            codeTable[i].letter = 0;
-            codeTable[i].code = NULL;
-            codeTable[i].length = 0;
-        }
-
-        char currentCode[50] = {0};
-        buildCodeTable(tree, new_size-1 , codeTable, currentCode, 0);
-        compressFile(input, output, codeTable, number_leaf_nodes);
-
-        // Clean up memory for all variables
-        freeHuffmanTree(tree);
-        for (int i = 0; i < 128; ++i) {
-            free(codeTable[i].code);
-        }
-        free(codeTable);       
+        compressFile(input,output);       
     }
     else{
         input = fopen(filename, "rb");
