@@ -201,7 +201,7 @@ void writeCodeTable2FileBinary(FILE* file, Code* codeTable, int tableSize) {
             // Write the letter
             fwrite(&codeTable[i].letter, sizeof(char), 1, file);
             // Write the length of the code
-            fwrite(&codeTable[i].length, sizeof(int), 1, file);
+            fwrite(&codeTable[i].length, sizeof(char), 1, file); //limits the code length to 255 bits, cuz sizeof(char)
             // Write the code in actual binary format
             fwrite(codeTable[i].code, sizeof(char), codeTable[i].length, file);
         }
@@ -226,7 +226,7 @@ Code* reconstructCodeTableFromFileBinary(FILE* file, int* tableSize) {
 
         // Read the length of the code
         int length;
-        fread(&length, sizeof(int), 1, file);
+        fread(&length, sizeof(char), 1, file);
 
         // Read the code
         codeTable[i].code = malloc(length + 1);
