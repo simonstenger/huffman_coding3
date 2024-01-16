@@ -34,36 +34,14 @@ typedef struct node Node;
 typedef struct char_freqs Frequency;
 typedef struct code Code;
 
-/*Read input file into variable in a function*/
-void readFile(char *filename, char *input) /*inputs: pointer to filename array, pointer to input array*/
-{
-    FILE *fp;
-    char c;
-    int i = 0;
-
-    fp = fopen(filename, "r");
-    if (fp == NULL)
-    {
-        printf("Error opening file\n");
-        exit(1);
-    }
-
-    while ((c = fgetc(fp)) != EOF) //copy characters into input array until end of file is reached
-    {
-        input[i] = c;
-        i++;
-    }
-    input[i] = '\0';
-    fclose(fp);
-}
-
-void countFrequencies(char *initial, Frequency *char_frequency) 
+void countFrequencies(FILE *file, Frequency *char_frequency) 
 {    
-    for (int i = 0; initial[i] != '\0'; i++)
-    {
-        char_frequency[(unsigned char)initial[i]].character = initial[i]; /*assign character to huffman node*/
-        char_frequency[(unsigned char)initial[i]].frequency++; /*update frequency of huffman node*/
+    int c;
+    while ((c = fgetc(file)) != EOF) {
+        char_frequency[c].character = c;
+        char_frequency[c].frequency++;
     }
+    rewind(file);
 }
 
 /*replace sorted array with one excluding the zeros*/
@@ -383,9 +361,7 @@ int main(){
         input = fopen(filename, "r");
         output = fopen("output.bin","wb");
         Frequency *char_frequency0 = (Frequency *)calloc(128, sizeof(Frequency));
-        char initial[3000];
-        readFile(filename, initial);
-        countFrequencies(initial, char_frequency0);
+        countFrequencies(input, char_frequency0);
         int new_size = count_non_zero(char_frequency0, 128);
         printf("new size: %d\n", new_size);
         Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
