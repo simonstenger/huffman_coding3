@@ -1,39 +1,45 @@
 //Huffman coding
 // By Simon Stenger
-// Date: 04/01/2023
-// Version: 2.0
+// Date: 17/01/2023
+// Version: 3.0
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <math.h>
+#include "types.h" //contains structure definitions for Frequency, Node and Code
 
-#define INT_MAX 2147483647
+#define INT_MAX 2147483647 //Used for initialisation in findMinNode function, max integer value
 
-// Node of the huffman tree
-struct node{
-    int value;
-    char letter;
-    int left, right;
-};
+/*Function declarations--------------------------------------------------------------------------*/
+//Function to count the frequency of each character in the input file
+void countFrequencies(FILE *file, Frequency *char_frequency);
+//Function to remove all elements with a frequency of 0 from the array
+Frequency *removeZeroElements(Frequency *char_frequency, int new_size);
+//Function to count the number of non-zero elements in the array -> number of leaf nodes in the tree
+int countNonZero(Frequency *char_frequency, int size);
+//Function to free the memory allocated for the Huffman tree
+void freeHuffmanTree(Node* tree);
+//Function to find the smallest node in an array of nodes
+int findMinNode(Node* tree, int excludedIndex, int size);
+//Function to build the Huffman tree
+Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency);
+//Function to build the code table containing character, code and code length
+void buildCodeTable(Node* tree, int index, Code* codeTable, char* currentCode, int depth);
+//Function to write the code table and its size to the header of a binary output file
+void writeCodeTable2FileBinary(FILE* file, Code* codeTable, int tableSize);
+//Function to reconstruct code table from binary file
+Code* reconstructCodeTableFromFileBinary(FILE* file, int* tableSize);
+//Function to write a binary string to a file
+void writeBinaryString2File(FILE* file, char index, Code* codeTable, int new_size);
+//Function to decode a binary file using Huffman coding table
+void decodeBinaryFile(FILE *input, FILE *output, Code *codeTable, int tableSize);
+//Function to compress the input file
+void compressFile(FILE *input, FILE *output);
+//Function to decompress the input file
+void decompressFile(FILE *input, FILE *output);
 
-struct char_freqs{
-    char character;
-    int frequency;
-};
-
-// Code structure to store the binary codes
-struct code{
-    char letter;
-    char* code;
-    int length;
-};
-
-typedef struct node Node;
-typedef struct char_freqs Frequency;
-typedef struct code Code;
-
+/*Function definitions--------------------------------------------------------------------------*/
 void countFrequencies(FILE *file, Frequency *char_frequency) 
 {    
     int c;
@@ -62,7 +68,7 @@ Frequency *removeZeroElements(Frequency *char_frequency, int new_size)
 }
 
 /*count non-zero elements*/
-int count_non_zero(Frequency *char_frequency, int size) {
+int countNonZero(Frequency *char_frequency, int size) {
     int count = 0;
     for (int i = 0; i < size; i++) {
         if (char_frequency[i].frequency != 0) {
@@ -292,7 +298,7 @@ void compressFile(FILE *input, FILE *output){
 
     Frequency *char_frequency0 = (Frequency *)calloc(128, sizeof(Frequency));
     countFrequencies(input, char_frequency0);
-    int new_size = count_non_zero(char_frequency0, 128);
+    int new_size = countNonZero(char_frequency0, 128);
     printf("new size: %d\n", new_size);
     Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
 
