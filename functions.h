@@ -13,6 +13,8 @@ Frequency *removeZeroElements(Frequency *char_frequency, int new_size);
 int countNonZero(Frequency *char_frequency, int size);
 //Function to free the memory allocated for the Huffman tree
 void freeHuffmanTree(Node* tree);
+//Function to get file type from name and decide to compress or decompress
+int getFileType(char* filename);
 //Function to find the smallest node in an array of nodes
 int findMinNode(Node* tree, int excludedIndex, int size);
 //Function to build the Huffman tree

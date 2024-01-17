@@ -10,7 +10,7 @@ typedef struct node{
 } Node;
 
 // Frequency of each character
-typedef struct char_freqs{
+typedef struct frequency{
     char character; // Character
     int frequency; // Frequency of the character
 } Frequency;

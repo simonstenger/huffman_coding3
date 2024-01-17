@@ -16,35 +16,38 @@
 #include "functions.h" //contains function declarations
 
 #define INT_MAX 2147483647 //Used for initialisation in findMinNode function, max integer value
+#define ASCII_SIZE 256 //Number of ASCII characters (ASCII Extended)
 
 /*Main function---------------------------------------------------------------------------------*/
 int main(){
     printf("-----------------------------Huffman (de-)compression-----------------------------");
     printf("\n");
-    int compress;
-    char filename[20];
+    char filename[101];  //filename can be up to 100 characters long
     FILE *input, *output;
 
     /*get input details from user*/
+    printf("Only .txt files are supported for compression and .bin files for decompression. Please ensure that the entered file path is no longer than 100 characters.\n");
+    printf("The output file will be named output.bin for compression and output.txt for decompression. It will appear in the same directory as the input file.\n");
     printf("Type the name of the file to process:");
     scanf("%s",filename);
-    printf("Type 1 to compress and 2 to decompress:");
-    scanf("%d",&compress);
+    int compress = getFileType(filename);
 
-    if (compress==1){
-        input = fopen(filename, "r");
-        output = fopen("output.bin","wb");
-        compressFile(input,output);
-        printf("-----------------------------Compression complete-----------------------------");
-        printf("\n");
-       
-    }
-    else{
-        input = fopen(filename, "rb");
-        output = fopen("output.txt","w");
-        decompressFile(input,output);
-        printf("-----------------------------Decompression complete-----------------------------");
-        printf("\n");
+    switch (compress) {
+        case 1:
+            input = fopen(filename, "r");
+            output = fopen("output.bin", "wb");
+            compressFile(input, output);
+            printf("-----------------------------Compression complete-----------------------------\n");
+            break;
+        case 2:
+            input = fopen(filename, "rb");
+            output = fopen("output.txt", "w");
+            decompressFile(input, output);
+            printf("-----------------------------Decompression complete-----------------------------\n");
+            break;
+        default:
+            printf("Invalid input. Please use either a .txt or a .bin file\n");
+            break;
     }
 
     fclose(input);
@@ -71,7 +74,7 @@ Frequency *removeZeroElements(Frequency *char_frequency, int new_size)
     Frequency *new_char_frequency = (Frequency *)malloc(new_size * sizeof(Frequency));
     // Copy non-zero elements to the new array
     int j = 0;
-    for (int i = 0; i < 128; i++)
+    for (int i = 0; i < ASCII_SIZE; i++)
     {
         if (char_frequency[i].frequency != 0)
         {
@@ -97,6 +100,18 @@ void freeHuffmanTree(Node* tree) {
         return;
     }
     free(tree);
+}
+
+int getFileType(char* filename) {
+    if (strstr(filename, ".txt") != NULL) {
+        return 1; // .txt file
+    }
+    else if (strstr(filename, ".bin") != NULL) {
+        return 2; // .bin file
+    }
+    else {
+        return 0; // unknown file type
+    }
 }
 
 /*finds the smallest node in the array*/
@@ -141,7 +156,7 @@ Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency){
         tree = realloc(tree, sizeof(Node) * ((*new_size)+1));
 
         tree[*new_size].value=tree[smallOne].value+tree[smallTwo].value;
-        tree[*new_size].letter=129;
+        tree[*new_size].letter=-1;
         tree[*new_size].left=smallTwo;
         tree[*new_size].right=smallOne;
         tree[smallOne].value=-1;
@@ -193,7 +208,7 @@ void writeCodeTable2FileBinary(FILE* file, Code* codeTable, int tableSize) {
     // Write int tableSize to the file
     fwrite(&tableSize, sizeof(char), 1, file);
 
-    for (int i = 0; i < 128; ++i) {
+    for (int i = 0; i < ASCII_SIZE; ++i) {
         if (codeTable[i].code != NULL) {
             // Write the letter
             fwrite(&codeTable[i].letter, sizeof(char), 1, file);
@@ -310,9 +325,9 @@ void compressFile(FILE *input, FILE *output){
     printf("Compressing file");
     printf("\n");
 
-    Frequency *char_frequency0 = (Frequency *)calloc(128, sizeof(Frequency));
+    Frequency *char_frequency0 = (Frequency *)calloc(ASCII_SIZE, sizeof(Frequency));
     countFrequencies(input, char_frequency0);
-    int new_size = countNonZero(char_frequency0, 128);
+    int new_size = countNonZero(char_frequency0, ASCII_SIZE);
     printf("new size: %d\n", new_size);
     Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
 
@@ -320,10 +335,10 @@ void compressFile(FILE *input, FILE *output){
     int number_leaf_nodes;
     memcpy(&number_leaf_nodes, &new_size, sizeof(int));
     tree = buildHuffmanTree(tree, &new_size, char_frequency);
-    Code *codeTable = malloc(128 * sizeof(Code));
+    Code *codeTable = malloc(ASCII_SIZE * sizeof(Code));
 
     // Initialize the code table
-    for (int i = 0; i < 128; ++i) {
+    for (int i = 0; i < ASCII_SIZE; ++i) {
         codeTable[i].letter = 0;
         codeTable[i].code = NULL;
         codeTable[i].length = 0;
@@ -353,7 +368,7 @@ void compressFile(FILE *input, FILE *output){
 
     // Clean up memory for all variables
     freeHuffmanTree(tree);
-    for (int i = 0; i < 128; ++i) {
+    for (int i = 0; i < ASCII_SIZE; ++i) {
         free(codeTable[i].code);
     }
     free(codeTable);
@@ -389,7 +404,7 @@ void decompressFile(FILE *input, FILE *output) {
     decodeBinaryFile(input, output, codeTable, tableSize);
 
     // Clean up memory for all variables
-        for (int i = 0; i < 128; ++i) {
+        for (int i = 0; i < ASCII_SIZE; ++i) {
             free(codeTable[i].code);
         }
         free(codeTable);
