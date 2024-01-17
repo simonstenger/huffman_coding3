@@ -56,39 +56,116 @@ int main(){
     return 0;
 }
 
-/*Function definitions--------------------------------------------------------------------------*/
-void countFrequencies(FILE *file, Frequency *char_frequency) 
+/*Compress and Decompress function definitions--------------------------------------------------------------------------*/
+/*function to compress the input*/
+void compressFile(FILE *input, FILE *output){
+    printf("Compressing file");
+    printf("\n");
+
+    Frequency *characterFrequency0 = (Frequency *)calloc(ASCII_SIZE, sizeof(Frequency));
+    countFrequencies(input, characterFrequency0);
+    int new_size = countNonZero(characterFrequency0, ASCII_SIZE);
+    printf("new size: %d\n", new_size);
+    Frequency *characterFrequency = removeZeroElements(characterFrequency0, new_size);
+
+    Node* tree = malloc(sizeof(Node) * new_size);
+    int number_leaf_nodes;
+    memcpy(&number_leaf_nodes, &new_size, sizeof(int));
+    tree = buildHuffmanTree(tree, &new_size, characterFrequency);
+    Code *codeTable = malloc(ASCII_SIZE * sizeof(Code));
+
+    // Initialize the code table
+    for (int i = 0; i < ASCII_SIZE; ++i) {
+        codeTable[i].letter = 0;
+        codeTable[i].code = NULL;
+        codeTable[i].length = 0;
+    }
+
+    char currentCode[50] = {0};
+    buildCodeTable(tree, new_size-1 , codeTable, currentCode, 0);
+
+    //write the codeTable into the header of the output file
+    writeCodeTable2FileBinary(output, codeTable, number_leaf_nodes);
+    //loop over characters in input file, take the code from the codeTable and write it to the output file
+    char c;
+    while ((c = fgetc(input)) != EOF) {
+        writeBinaryString2File(output, c, codeTable, new_size);
+        // int length = strlen(codeTable[c].code);
+        printf("Length of code: %d", codeTable[c].length);
+        printf("\n");
+        printf("Character: %c", c);
+        printf("\n");
+        printf("Code: %.*s", codeTable[c].length, codeTable[c].code);
+        printf("\n");
+    }
+    if (c == EOF) {
+        //write EOF to the output file
+        fprintf(output, "%c", EOF);
+    }
+
+    // Clean up memory for all variables
+    freeHuffmanTree(tree);
+    for (int i = 0; i < ASCII_SIZE; ++i) {
+        free(codeTable[i].code);
+    }
+    free(codeTable);
+    free(characterFrequency0);
+    free(characterFrequency);
+
+    summarizeCompression(input, output);
+
+    return;
+}
+
+/*function to decompress the input*/ //DOES NOT WORK YET
+void decompressFile(FILE *input, FILE *output) {
+    printf("Decompressing file\n");
+    //reconstruct code table from file
+    int tableSize = 0;
+    Code* codeTable = reconstructCodeTableFromFileBinary(input, &tableSize);
+    //read binary string from file
+    decodeBinaryFile(input, output, codeTable, tableSize);
+
+    // Clean up memory for all variables
+        for (int i = 0; i < ASCII_SIZE; ++i) {
+            free(codeTable[i].code);
+        }
+        free(codeTable);
+}
+
+/*Functions required for compression---------------------------------------------------------------------------------------*/
+void countFrequencies(FILE *file, Frequency *characterFrequency) 
 {    
     int c;
     while ((c = fgetc(file)) != EOF) {
-        char_frequency[c].character = c;
-        char_frequency[c].frequency++;
+        characterFrequency[c].character = c;
+        characterFrequency[c].frequency++;
     }
     rewind(file);
 }
 
 /*replace sorted array with one excluding the zeros*/
-Frequency *removeZeroElements(Frequency *char_frequency, int new_size)
+Frequency *removeZeroElements(Frequency *characterFrequency, int new_size)
 {
     // Allocate memory for the new array
-    Frequency *new_char_frequency = (Frequency *)malloc(new_size * sizeof(Frequency));
+    Frequency *new_characterFrequency = (Frequency *)malloc(new_size * sizeof(Frequency));
     // Copy non-zero elements to the new array
     int j = 0;
     for (int i = 0; i < ASCII_SIZE; i++)
     {
-        if (char_frequency[i].frequency != 0)
+        if (characterFrequency[i].frequency != 0)
         {
-            new_char_frequency[j++] = char_frequency[i];
+            new_characterFrequency[j++] = characterFrequency[i];
         }
     }
-    return new_char_frequency;
+    return new_characterFrequency;
 }
 
 /*count non-zero elements*/
-int countNonZero(Frequency *char_frequency, int size) {
+int countNonZero(Frequency *characterFrequency, int size) {
     int count = 0;
     for (int i = 0; i < size; i++) {
-        if (char_frequency[i].frequency != 0) {
+        if (characterFrequency[i].frequency != 0) {
             count++;
         }
     }
@@ -100,18 +177,6 @@ void freeHuffmanTree(Node* tree) {
         return;
     }
     free(tree);
-}
-
-int getFileType(char* filename) {
-    if (strstr(filename, ".txt") != NULL) {
-        return 1; // .txt file
-    }
-    else if (strstr(filename, ".bin") != NULL) {
-        return 2; // .bin file
-    }
-    else {
-        return 0; // unknown file type
-    }
 }
 
 /*finds the smallest node in the array*/
@@ -133,14 +198,14 @@ int findMinNode(Node* tree, int excludedIndex, int size) {
 }
 
 /*builds the huffman tree and returns its address by reference*/
-Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency){
+Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *characterFrequency){
     int i = 0;
     int nodes_left = *new_size;
     int smallOne,smallTwo;
 
     for (i=0;i<*new_size;i++){
-        tree[i].value = char_frequency[i].frequency;
-        tree[i].letter = char_frequency[i].character;
+        tree[i].value = characterFrequency[i].frequency;
+        tree[i].letter = characterFrequency[i].character;
         tree[i].left = -1;
         tree[i].right = -1;
 
@@ -220,6 +285,35 @@ void writeCodeTable2FileBinary(FILE* file, Code* codeTable, int tableSize) {
     }
 }
 
+void writeBinaryString2File(FILE* file, char index, Code* codeTable, int new_size) {
+    static unsigned char byte = 0; // Make byte static to retain its value across function calls
+    static int bitIndex = 7; // Make bitIndex static to retain its value across function calls
+
+    const char* binaryString = codeTable[index].code;
+    int length = codeTable[index].length;
+
+    for (int i = 0; i < length; ++i) {
+        if (binaryString[i] == '1') {
+            byte |= (1 << bitIndex);
+        }
+        // Move to the next bit
+        bitIndex--;
+
+        // Write the byte to the file when all bits are set
+        if (bitIndex < 0) {
+            fwrite(&byte, sizeof(unsigned char), 1, file);
+            byte = 0;
+            bitIndex = 7;
+        }
+    }
+
+    // If this is the last character, write the remaining bits to the file
+    if (index == new_size - 1 && bitIndex != 7) {
+        fwrite(&byte, sizeof(unsigned char), 1, file);
+    }
+}
+
+/*Functions required for decompression---------------------------------------------------------------------------------------*/
 // Reconstruct code table from binary file
 Code* reconstructCodeTableFromFileBinary(FILE* file, int* tableSize) {
     // Read code table size
@@ -249,34 +343,6 @@ Code* reconstructCodeTableFromFileBinary(FILE* file, int* tableSize) {
     }
 
     return codeTable;
-}
-
-void writeBinaryString2File(FILE* file, char index, Code* codeTable, int new_size) {
-    static unsigned char byte = 0; // Make byte static to retain its value across function calls
-    static int bitIndex = 7; // Make bitIndex static to retain its value across function calls
-
-    const char* binaryString = codeTable[index].code;
-    int length = codeTable[index].length;
-
-    for (int i = 0; i < length; ++i) {
-        if (binaryString[i] == '1') {
-            byte |= (1 << bitIndex);
-        }
-        // Move to the next bit
-        bitIndex--;
-
-        // Write the byte to the file when all bits are set
-        if (bitIndex < 0) {
-            fwrite(&byte, sizeof(unsigned char), 1, file);
-            byte = 0;
-            bitIndex = 7;
-        }
-    }
-
-    // If this is the last character, write the remaining bits to the file
-    if (index == new_size - 1 && bitIndex != 7) {
-        fwrite(&byte, sizeof(unsigned char), 1, file);
-    }
 }
 
 // Function to decode a binary file using Huffman coding table
@@ -318,67 +384,29 @@ void decodeBinaryFile(FILE *input, FILE *output, Code *codeTable, int tableSize)
             }
         }
     }
-}  
+}
 
-/*function to compress the input*/
-void compressFile(FILE *input, FILE *output){
-    printf("Compressing file");
-    printf("\n");
-
-    Frequency *char_frequency0 = (Frequency *)calloc(ASCII_SIZE, sizeof(Frequency));
-    countFrequencies(input, char_frequency0);
-    int new_size = countNonZero(char_frequency0, ASCII_SIZE);
-    printf("new size: %d\n", new_size);
-    Frequency *char_frequency = removeZeroElements(char_frequency0, new_size);
-
-    Node* tree = malloc(sizeof(Node) * new_size);
-    int number_leaf_nodes;
-    memcpy(&number_leaf_nodes, &new_size, sizeof(int));
-    tree = buildHuffmanTree(tree, &new_size, char_frequency);
-    Code *codeTable = malloc(ASCII_SIZE * sizeof(Code));
-
-    // Initialize the code table
-    for (int i = 0; i < ASCII_SIZE; ++i) {
-        codeTable[i].letter = 0;
-        codeTable[i].code = NULL;
-        codeTable[i].length = 0;
+/*Other functions------------------------------------------------------------------------------------------------------------*/
+int getFileType(char* filename) {
+    if (strstr(filename, ".txt") != NULL) {
+        return 1; // .txt file
     }
-
-    char currentCode[50] = {0};
-    buildCodeTable(tree, new_size-1 , codeTable, currentCode, 0);
-
-    //write the codeTable into the header of the output file
-    writeCodeTable2FileBinary(output, codeTable, number_leaf_nodes);
-    //loop over characters in input file, take the code from the codeTable and write it to the output file
-    char c;
-    while ((c = fgetc(input)) != EOF) {
-        writeBinaryString2File(output, c, codeTable, new_size);
-        // int length = strlen(codeTable[c].code);
-        printf("Length of code: %d", codeTable[c].length);
-        printf("\n");
-        printf("Character: %c", c);
-        printf("\n");
-        printf("Code: %.*s", codeTable[c].length, codeTable[c].code);
-        printf("\n");
+    else if (strstr(filename, ".bin") != NULL) {
+        return 2; // .bin file
     }
-    if (c == EOF) {
-        //write EOF to the output file
-        fprintf(output, "%c", EOF);
+    else {
+        return 0; // unknown file type
     }
+}
 
-    // Clean up memory for all variables
-    freeHuffmanTree(tree);
-    for (int i = 0; i < ASCII_SIZE; ++i) {
-        free(codeTable[i].code);
-    }
-    free(codeTable);
-    free(char_frequency0);
-    free(char_frequency);
-    
+//summarize compression
+void summarizeCompression(FILE *input, FILE *output) {
     //calculate input file size
+    rewind(input);
     fseek(input, 0L, SEEK_END);
     int originalBits = 8* ftell(input);
     //calculate output file size
+    rewind(output);
     fseek(output, 0L, SEEK_END);
     int compressedBits = 8* ftell(output);
     /*print details of compression on the screen*/
@@ -390,22 +418,4 @@ void compressFile(FILE *input, FILE *output){
     printf("\n");
     fprintf(stderr,"Saved %.2f%% of memory",(((float)(originalBits*8)-(float)compressedBits)/(float)(originalBits*8))*100);
     printf("\n");
-
-    return;
-}
-
-/*function to decompress the input*/ //DOES NOT WORK YET
-void decompressFile(FILE *input, FILE *output) {
-    printf("Decompressing file\n");
-    //reconstruct code table from file
-    int tableSize = 0;
-    Code* codeTable = reconstructCodeTableFromFileBinary(input, &tableSize);
-    //read binary string from file
-    decodeBinaryFile(input, output, codeTable, tableSize);
-
-    // Clean up memory for all variables
-        for (int i = 0; i < ASCII_SIZE; ++i) {
-            free(codeTable[i].code);
-        }
-        free(codeTable);
 }

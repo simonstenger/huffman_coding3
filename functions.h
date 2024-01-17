@@ -15,6 +15,8 @@ int countNonZero(Frequency *char_frequency, int size);
 void freeHuffmanTree(Node* tree);
 //Function to get file type from name and decide to compress or decompress
 int getFileType(char* filename);
+//Function to summarize compression statistics
+void summarizeCompression(FILE* input, FILE* output);
 //Function to find the smallest node in an array of nodes
 int findMinNode(Node* tree, int excludedIndex, int size);
 //Function to build the Huffman tree
