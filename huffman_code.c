@@ -37,13 +37,17 @@ int main(){
             input = fopen(filename, "r");
             output = fopen("output.bin", "wb");
             compressFile(input, output);
-            printf("-----------------------------Compression complete-----------------------------\n");
+            printf("\n-----------------------------Compression complete-----------------------------\n");
             break;
         case 2:
             input = fopen(filename, "rb");
             output = fopen("output.txt", "w");
+            if (input == NULL || output == NULL) {
+                printf("Error opening files\n");
+                exit(1);
+            }
             decompressFile(input, output);
-            printf("-----------------------------Decompression complete-----------------------------\n");
+            printf("\n-----------------------------Decompression complete-----------------------------\n");
             break;
         default:
             printf("Invalid input. Please use either a .txt or a .bin file\n");
@@ -127,7 +131,7 @@ void decompressFile(FILE *input, FILE *output) {
     decodeBinaryFile(input, output, codeTable, tableSize);
 
     // Clean up memory for all variables
-        for (int i = 0; i < ASCII_SIZE; ++i) {
+        for (int i = 0; i < tableSize; ++i) {
             free(codeTable[i].code);
         }
         free(codeTable);
