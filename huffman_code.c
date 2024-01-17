@@ -3,41 +3,55 @@
 // Date: 17/01/2023
 // Version: 3.0
 
+/*Description-----------------------------------------------------------------------------------*/
+//Write later
+
+/*Header----------------------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
 #include "types.h" //contains structure definitions for Frequency, Node and Code
+#include "functions.h" //contains function declarations
 
 #define INT_MAX 2147483647 //Used for initialisation in findMinNode function, max integer value
 
-/*Function declarations--------------------------------------------------------------------------*/
-//Function to count the frequency of each character in the input file
-void countFrequencies(FILE *file, Frequency *char_frequency);
-//Function to remove all elements with a frequency of 0 from the array
-Frequency *removeZeroElements(Frequency *char_frequency, int new_size);
-//Function to count the number of non-zero elements in the array -> number of leaf nodes in the tree
-int countNonZero(Frequency *char_frequency, int size);
-//Function to free the memory allocated for the Huffman tree
-void freeHuffmanTree(Node* tree);
-//Function to find the smallest node in an array of nodes
-int findMinNode(Node* tree, int excludedIndex, int size);
-//Function to build the Huffman tree
-Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *char_frequency);
-//Function to build the code table containing character, code and code length
-void buildCodeTable(Node* tree, int index, Code* codeTable, char* currentCode, int depth);
-//Function to write the code table and its size to the header of a binary output file
-void writeCodeTable2FileBinary(FILE* file, Code* codeTable, int tableSize);
-//Function to reconstruct code table from binary file
-Code* reconstructCodeTableFromFileBinary(FILE* file, int* tableSize);
-//Function to write a binary string to a file
-void writeBinaryString2File(FILE* file, char index, Code* codeTable, int new_size);
-//Function to decode a binary file using Huffman coding table
-void decodeBinaryFile(FILE *input, FILE *output, Code *codeTable, int tableSize);
-//Function to compress the input file
-void compressFile(FILE *input, FILE *output);
-//Function to decompress the input file
-void decompressFile(FILE *input, FILE *output);
+/*Main function---------------------------------------------------------------------------------*/
+int main(){
+    printf("-----------------------------Huffman (de-)compression-----------------------------");
+    printf("\n");
+    int compress;
+    char filename[20];
+    FILE *input, *output;
+
+    /*get input details from user*/
+    printf("Type the name of the file to process:");
+    scanf("%s",filename);
+    printf("Type 1 to compress and 2 to decompress:");
+    scanf("%d",&compress);
+
+    if (compress==1){
+        input = fopen(filename, "r");
+        output = fopen("output.bin","wb");
+        compressFile(input,output);
+        printf("-----------------------------Compression complete-----------------------------");
+        printf("\n");
+       
+    }
+    else{
+        input = fopen(filename, "rb");
+        output = fopen("output.txt","w");
+        decompressFile(input,output);
+        printf("-----------------------------Decompression complete-----------------------------");
+        printf("\n");
+    }
+
+    fclose(input);
+    fclose(output);
+
+    return 0;
+}
 
 /*Function definitions--------------------------------------------------------------------------*/
 void countFrequencies(FILE *file, Frequency *char_frequency) 
@@ -379,34 +393,4 @@ void decompressFile(FILE *input, FILE *output) {
             free(codeTable[i].code);
         }
         free(codeTable);
-}
-
-int main(){
-    printf("-----------------------------Huffman compression-----------------------------");
-    printf("\n");
-    int compress;
-    char filename[20];
-    FILE *input, *output;
-
-    /*get input details from user*/
-    printf("Type the name of the file to process:");
-    scanf("%s",filename);
-    printf("Type 1 to compress and 2 to decompress:");
-    scanf("%d",&compress);
-
-    if (compress==1){
-        input = fopen(filename, "r");
-        output = fopen("output.bin","wb");
-        compressFile(input,output);       
-    }
-    else{
-        input = fopen(filename, "rb");
-        output = fopen("output.txt","w");
-        decompressFile(input,output);
-    }
-
-    fclose(input);
-    fclose(output);
-
-    return 0;
 }
