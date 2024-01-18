@@ -72,7 +72,7 @@ void compressFile(FILE *input, FILE *output){
     printf("new size: %d\n", new_size);
     Frequency *characterFrequency = removeZeroElements(characterFrequency0, new_size);
 
-    Node* tree = malloc(sizeof(Node) * new_size);
+    Node* tree = malloc(sizeof(Node) * (new_size+1)); // +1 for EOF character
     int number_leaf_nodes;
     memcpy(&number_leaf_nodes, &new_size, sizeof(int));
     tree = buildHuffmanTree(tree, &new_size, characterFrequency);
@@ -85,7 +85,7 @@ void compressFile(FILE *input, FILE *output){
         codeTable[i].length = 0;
     }
 
-    char currentCode[50] = {0};
+    char currentCode[ASCII_SIZE] = {0};
     buildCodeTable(tree, new_size-1 , codeTable, currentCode, 0);
 
     //write the codeTable into the header of the output file
@@ -102,17 +102,15 @@ void compressFile(FILE *input, FILE *output){
         printf("Code: %.*s", codeTable[c].length, codeTable[c].code);
         printf("\n");
     }
-    if (c == EOF) {
-        //write EOF to the output file
-        fprintf(output, "%c", EOF);
-    }
+    // Write EOF character to the output file
+    writeBinaryString2File(output, EOF, codeTable, new_size);
 
     // Clean up memory for all variables
-    freeHuffmanTree(tree);
-    for (int i = 0; i < ASCII_SIZE; ++i) {
-        free(codeTable[i].code);
-    }
-    free(codeTable);
+    //free(tree);
+    //for (int i = 0; i < ASCII_SIZE; ++i) {
+    //    free(codeTable[i].code);
+    //}
+    //free(codeTable);
     free(characterFrequency0);
     free(characterFrequency);
 
@@ -218,6 +216,14 @@ Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *characterFrequency)
         printf("Number of nodes so far %d\n", i);
     }
 
+    // Add EOF character to the tree
+    tree[*new_size].value = 1; // EOF frequency
+    tree[*new_size].letter = EOF; // EOF character
+    tree[*new_size].left = -1;
+    tree[*new_size].right = -1;
+    (*new_size)++;
+    nodes_left++;
+
     while (nodes_left>1){
         smallOne=findMinNode(tree,-1, *new_size);
         smallTwo=findMinNode(tree,smallOne, *new_size);
@@ -225,7 +231,7 @@ Node* buildHuffmanTree(Node *tree, int *new_size, Frequency *characterFrequency)
         tree = realloc(tree, sizeof(Node) * ((*new_size)+1));
 
         tree[*new_size].value=tree[smallOne].value+tree[smallTwo].value;
-        tree[*new_size].letter=-1;
+        tree[*new_size].letter=-2;
         tree[*new_size].left=smallTwo;
         tree[*new_size].right=smallOne;
         tree[smallOne].value=-1;
