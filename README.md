@@ -21,6 +21,7 @@ The program provides a command-line interface for compressing and decompressing 
   2.Compile the program.
   3.Run the executable in the command line.
   4.Follow the prompts to enter the filename for processing, examples are available, try 'example1.txt' for instance.
+  5.The output file can be found either in 'output.bin' or 'output.txt', depend on the input.
   
 3.File Structure
   huffman_code.c: Contains the main function at the start, followed by the compression and decompression function, and then all smaller functions.
