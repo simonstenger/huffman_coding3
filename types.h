@@ -22,4 +22,4 @@ typedef struct code{
     int length; // Length of the binary code
 } Code;
 
-#endif // TYPES_H
+#endif
