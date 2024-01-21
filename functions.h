@@ -11,8 +11,6 @@ void countFrequencies(FILE *file, Frequency *char_frequency);
 Frequency *removeZeroElements(Frequency *char_frequency, int new_size);
 //Function to count the number of non-zero elements in the array -> number of leaf nodes in the tree
 int countNonZero(Frequency *char_frequency, int size);
-//Function to free the memory allocated for the Huffman tree
-void freeHuffmanTree(Node* tree);
 //Function to get file type from name and decide to compress or decompress
 int getFileType(char* filename);
 //Function to summarize compression statistics
