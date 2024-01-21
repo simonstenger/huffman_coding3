@@ -30,6 +30,11 @@ int main(){
     printf("The output file will be named output.bin for compression and output.txt for decompression. It will appear in the same directory as the input file.\n");
     printf("Type the name of the file to process:");
     scanf("%s",filename);
+    //check length of filename
+    if (strlen(filename)>100){
+        printf("Filename too long. Please try again.");
+        exit(1);
+    }
     int compress = getFileType(filename);
 
     switch (compress) {
@@ -420,12 +425,12 @@ void summarizeCompression(FILE *input, FILE *output) {
     fseek(output, 0L, SEEK_END);
     int compressedBits = 8* ftell(output);
     /*print details of compression on the screen*/
-    fprintf(stderr,"Original bits = %d",originalBits*8);
+    fprintf(stderr,"Original bits = %d",originalBits);
     printf("\n");
     fprintf(stderr,"Compressed bits = %d",compressedBits);
     printf("\n");
-    fprintf(stderr,"Compression ratio of %.2f%%",(((float)((float)compressedBits)/(float)(originalBits*8))*100));
+    fprintf(stderr,"Compression ratio of %.2f%%",(((float)((float)compressedBits)/(float)(originalBits))*100));
     printf("\n");
-    fprintf(stderr,"Saved %.2f%% of memory",(((float)(originalBits*8)-(float)compressedBits)/(float)(originalBits*8))*100);
+    fprintf(stderr,"Saved %.2f%% of memory",(((float)(originalBits)-(float)compressedBits)/(float)(originalBits))*100);
     printf("\n");
 }
