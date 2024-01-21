@@ -1,6 +1,6 @@
 Huffman Compression/Decompression
 This C program implements Huffman coding for file compression and decompression. It was written by Simon Stenger between the 01.10.2023 and the 21.01.2024 as part of the Programming and C language course in the ASNAT program at the Ecole Nationale d'Aviation Civile.
-It compresses simple .txt files into a compressed binary file and vice versa
+It compresses simple text files into a compressed binary file and vice versa.
 
 Table of Contents
 1.Introduction
@@ -11,6 +11,7 @@ Table of Contents
 6.Compilation
 7.Execution
 8.Sample Run
+9.Example Files
 
 1.Introduction
 The program provides a command-line interface for compressing and decompressing text files using Huffman coding. It supports both compression (.txt to .bin) and decompression (.bin to .txt) based on the file extension.
@@ -19,7 +20,7 @@ The program provides a command-line interface for compressing and decompressing 
   1.Include .txt files you would like to compress or .bin files you would like to decompress in the same directory as the files of this project.
   2.Compile the program.
   3.Run the executable in the command line.
-  4.Follow the prompts to enter the filename for processing.
+  4.Follow the prompts to enter the filename for processing, examples are available, try 'example1.txt' for instance.
   
 3.File Structure
   huffman_code.c: Contains the main function at the start, followed by the compression and decompression function, and then all smaller functions.
@@ -36,7 +37,7 @@ The program provides a command-line interface for compressing and decompressing 
   1.Compression Function
     compressFile: Compresses a text file using Huffman coding.
   2.Decompression Function
-    decompressFile: Decompresses a binary file using Huffman coding.
+    decompressFile: Decompresses a binary file using the reconstructed code table.
   3.Frequency Calculation Functions
     countFrequencies: Counts the frequency of each character in the input file.
     countNonZero: Counts the number of non-zero elements in the frequency array.
@@ -57,16 +58,16 @@ The program provides a command-line interface for compressing and decompressing 
     summarizeCompression: Prints compression statistics.
     
 6.Compilation
-To compile the program, use the following command:
-gcc main.c functions.c -o huffman
+  To compile the program, use the following command:
+  gcc main.c functions.c -o huffman
 
 7.Execution
-Run the compiled executable with the following command:
-./huffman
-Then follow the on-screen prompts to specify the file for compression or decompression.
+  Run the compiled executable with the following command:
+  ./huffman
+  Then follow the on-screen prompts to specify the file for compression or decompression.
 
 8.Sample Run
-The following outlines what you should see upon running the executable:
+  The following outlines what you should see upon running the executable:
   1.Compression:
   
     -----------------------------Huffman (de-)compression-----------------------------
@@ -94,3 +95,9 @@ The following outlines what you should see upon running the executable:
     Decompressing file
     
     -----------------------------Decompression complete-----------------------------
+
+9.Example Files
+  The project contains 3 example files containing 'Lorem Ipsum' text. All examples are available in their .txt and .bin form.
+  Example 1 contains 200 words.
+  Example 2 contains 500 words.
+  Example 3 contains 1000 words.
